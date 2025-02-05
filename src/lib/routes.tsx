@@ -1,15 +1,10 @@
-import React from 'react';
 import { createBrowserRouter } from 'react-router-dom';
 import { BaseLayout } from '@/layouts/BaseLayout';
-import { AdminLayout } from '@/layouts/admin/AdminLayout';
-import { StudentLayout } from '@/layouts/student/StudentLayout';
-import { ProfessorLayout } from '@/layouts/professor/ProfessorLayout';
 import { RconProtectedRoute } from '@/components/auth/rcon-protected-route';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { ErrorBoundary } from '@/components/error/ErrorBoundary';
 import { RegisterWizard } from '@/components/auth/RegisterWizard';
 import { LoginForm } from '@/components/auth/LoginForm';
-import { RconAuth } from '@/components/auth/rcon-auth';
 import {
   Landing,
   HomeBase,

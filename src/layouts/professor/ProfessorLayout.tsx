@@ -1,6 +1,5 @@
-import React from 'react';
 import { motion } from 'framer-motion';
-import { NavLink, Outlet, Link, useNavigate } from 'react-router-dom';
+import { NavLink, Outlet, Link } from 'react-router-dom';
 import { 
   Home, 
   BookOpen, 
@@ -11,7 +10,6 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '../../components/shared/UserProfile';
 import { NotificationBell } from '../../components/shared/NotificationBell';
-import { useAuth } from '../../contexts/AuthContext';
 
 const menuItems = [
   { icon: Home, label: 'HomeBase', path: '/professor' },
@@ -46,8 +44,6 @@ const contentVariants = {
 };
 
 export function ProfessorLayout() {
-  const { user } = useAuth();
-
   // Mock data
   const mockNotifications = [
     {

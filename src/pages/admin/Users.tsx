@@ -138,7 +138,7 @@ export default function Users() {
           onClose={() => setSelectedUser(null)}
           isOpen={!!selectedUser}
           onSave={async (userData) => {
-            const { data, error } = await supabase
+            const { error } = await supabase
               .from('users')
               .update(userData)
               .eq('id', selectedUser.id);
