@@ -12,16 +12,6 @@ interface PopoverState {
   role: 'professor' | 'student' | null;
 }
 
-interface CardProps {
-  title: string;
-  description: string;
-  icon: LucideIcon;
-  path: string;
-  color: string;
-  role?: string;
-  onClick: () => void;
-}
-
 const cards = [
   {
     title: 'Učenik',

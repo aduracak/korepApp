@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { X } from 'lucide-react';
-import { UserProfile, UserRole } from '../../types/auth';
+import type { User } from '@/types/database';
 
 interface UserEditModalProps {
   isOpen: boolean;
   onClose: () => void;
-  user: UserProfile | null;
-  onSave: (userData: Partial<UserProfile>) => Promise<void>;
+  user: User | null;
+  onSave: (userData: Partial<User>) => Promise<void>;
 }
 
 export function UserEditModal({ isOpen, onClose, user, onSave }: UserEditModalProps) {
-  const [formData, setFormData] = useState<Partial<UserProfile>>(user || {});
+  const [formData, setFormData] = useState<Partial<User>>(user || {});
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
