@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+import { motion } from 'framer-motion'
 import { Shield, Key, ArrowLeft, Loader2 } from 'lucide-react'
 import { rconAuth } from '@/lib/rcon-auth'
 import { toast } from 'sonner'
@@ -45,13 +45,13 @@ export function RconAuth() {
     if (rconAuth.isAuthorized()) {
       handleSuccessfulAuth()
     }
-  }, [navigate])
+  }, [])
 
   const handleSuccessfulAuth = () => {
     setIsExiting(true)
     // Sačekaj da se završi animacija prije navigacije
     setTimeout(() => {
-      navigate('/admin', { unstable_viewTransition: true })
+      navigate('/admin')
     }, 200)
   }
 
@@ -71,7 +71,7 @@ export function RconAuth() {
       if (attempts + 1 >= MAX_ATTEMPTS) {
         toast.error('Previše neuspješnih pokušaja')
         setIsExiting(true)
-        setTimeout(() => navigate('/', { unstable_viewTransition: true }), 2000)
+        setTimeout(() => navigate('/'), 2000)
       } else {
         toast.error(`${response.message} (Preostalo pokušaja: ${MAX_ATTEMPTS - (attempts + 1)})`)
       }

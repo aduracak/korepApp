@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, Users, ShieldCheck } from 'lucide-react';
+import { GraduationCap, ChalkboardTeacher, ShieldCheck } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import { AuthPopover } from '../components/shared/AuthPopover';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -11,28 +12,39 @@ interface PopoverState {
   role: 'professor' | 'student' | null;
 }
 
+interface CardProps {
+  title: string;
+  description: string;
+  icon: LucideIcon;
+  path: string;
+  color: string;
+  role?: string;
+  onClick: () => void;
+}
+
 const cards = [
-  {
-    title: 'Profesor',
-    description: 'Pristupite vašem profesorskom panelu',
-    icon: GraduationCap,
-    path: '/professor',
-    role: 'professor',
-    color: 'from-emerald-400 to-cyan-400'
-  },
   {
     title: 'Učenik',
     description: 'Pristupite vašem učeničkom panelu',
-    icon: Users,
+    icon: GraduationCap,
     path: '/ucenik',
     role: 'student',
-    color: 'from-purple-400 to-pink-400'
+    color: 'from-blue-400 to-indigo-400'
+  },
+  {
+    title: 'Profesor',
+    description: 'Pristupite vašem profesorskom panelu',
+    icon: ChalkboardTeacher,
+    path: '/professor',
+    role: 'professor',
+    color: 'from-emerald-400 to-cyan-400'
   },
   {
     title: 'Admin',
     description: 'Pristupite administratorskom panelu',
     icon: ShieldCheck,
     path: '/admin',
+    role: 'admin',
     color: 'from-orange-400 to-red-400'
   }
 ] as const;
@@ -53,20 +65,16 @@ const Landing: React.FC = () => {
   const headerOpacity = useTransform(scrollYProgress, [0.1, 0.2], [0, 1]);
   const headerTitleOpacity = useTransform(scrollYProgress, [0.15, 0.2], [0, 1]);
 
-  const handleCardClick = (card: typeof cards[number], event: React.MouseEvent) => {
-    const rect = (event.target as HTMLElement).getBoundingClientRect();
-    
-    if (card.role && !user) {
-      setPopover({
-        isOpen: true,
-        position: { 
-          x: rect.left + window.scrollX,
-          y: rect.top + window.scrollY - 10
-        },
-        role: card.role
-      });
-    } else {
+  const handleCardClick = (card: typeof cards[number]) => {
+    if (!user) {
+      navigate('/login');
+      return;
+    }
+
+    if (user.role === card.role || card.role === undefined) {
       navigate(card.path);
+    } else {
+      console.log('Nemate pristup ovom dijelu aplikacije');
     }
   };
 
@@ -151,16 +159,21 @@ const Landing: React.FC = () => {
           {cards.map((card) => (
             <motion.div
               key={card.path}
-              className="bg-slate-800/50 backdrop-blur-xl rounded-xl p-8 border border-white/10 cursor-pointer"
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              onClick={(e) => handleCardClick(card, e)}
+              className="relative group cursor-pointer"
             >
-              <div className={`inline-block p-4 rounded-lg bg-gradient-to-r ${card.color} mb-4`}>
-                <card.icon className="w-8 h-8 text-white" />
+              <div
+                className={`absolute -inset-0.5 bg-gradient-to-r ${card.color} rounded-2xl opacity-75 blur group-hover:opacity-100 transition duration-200`}
+              ></div>
+              <div
+                className="relative bg-slate-800/50 backdrop-blur-sm p-6 rounded-2xl border border-white/10"
+                onClick={() => handleCardClick(card)}
+              >
+                <div className={`w-12 h-12 rounded-xl bg-gradient-to-r ${card.color} p-2.5 mb-4`}>
+                  <card.icon className="w-full h-full text-white" />
+                </div>
+                <h2 className="text-2xl font-bold text-white mb-2">{card.title}</h2>
+                <p className="text-gray-400">{card.description}</p>
               </div>
-              <h2 className="text-2xl font-bold text-white mb-2">{card.title}</h2>
-              <p className="text-gray-400">{card.description}</p>
             </motion.div>
           ))}
         </motion.div>
