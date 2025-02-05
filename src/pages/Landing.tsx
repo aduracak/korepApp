@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import { GraduationCap, ChalkboardTeacher, ShieldCheck } from 'lucide-react';
+import { GraduationCap, School, ShieldCheck } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { AuthPopover } from '../components/shared/AuthPopover';
 import { useAuth } from '../contexts/AuthContext';
@@ -34,7 +34,7 @@ const cards = [
   {
     title: 'Profesor',
     description: 'Pristupite vašem profesorskom panelu',
-    icon: ChalkboardTeacher,
+    icon: School,
     path: '/professor',
     role: 'professor',
     color: 'from-emerald-400 to-cyan-400'

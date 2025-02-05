@@ -1,17 +1,10 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query'
 import { motion } from 'framer-motion'
 import { Shield, Key, Power } from 'lucide-react'
 import { supabase } from '@/lib/supabase'
 import { toast } from 'sonner'
-
-interface RconSettings {
-  id: string
-  code: string
-  is_active: boolean
-  created_at: string
-  updated_at: string
-}
+import type { RconSettings } from '@/types/database'
 
 const containerVariants = {
   initial: { opacity: 0, y: 20 },
@@ -45,12 +38,15 @@ export default function RconSettingsForm() {
 
       if (error) throw error
       return data as RconSettings
-    },
-    onSuccess: (data) => {
-      setCode(data.code)
-      setIsActive(data.is_active)
     }
   })
+
+  useEffect(() => {
+    if (settings) {
+      setCode(settings.code)
+      setIsActive(settings.is_active)
+    }
+  }, [settings])
 
   const updateSettings = useMutation({
     mutationFn: async (newSettings: Partial<RconSettings>) => {
