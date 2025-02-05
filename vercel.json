@@ -28,8 +28,8 @@
     }
   ],
   "env": {
-    "VITE_SUPABASE_URL": "@supabase_url",
-    "VITE_SUPABASE_ANON_KEY": "@supabase_anon_key",
+    "VITE_SUPABASE_URL": "https://hcjdzosiczwbfiutkvue.supabase.co",
+    "VITE_SUPABASE_ANON_KEY": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImhjamR6b3NpY3p3YmZpdXRrdnVlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzgxNzY2NDYsImV4cCI6MjA1Mzc1MjY0Nn0.8izhRHOAEWO4OcgjzjvkuvrpUy9hNVMzjLRBFFmf3to",
     "VITE_APP_NAME": "KorepApp",
     "VITE_ENABLE_RCON": "true",
     "VITE_ENABLE_REGISTRATION": "true"
