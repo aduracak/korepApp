@@ -136,10 +136,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = async () => {
     try {
-      setState(prev => ({ ...prev, isLoading: true, error: null }));
-      const { error } = await supabase.auth.signOut();
-      if (error) throw error;
-      
+      await supabase.auth.signOut();
       setState(prev => ({
         ...prev,
         user: null,
@@ -147,12 +144,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         error: null,
       }));
     } catch (error) {
-      setState(prev => ({
-        ...prev,
-        error: 'Greška pri odjavi',
-        isLoading: false,
-      }));
-      throw error;
+      console.error('Error signing out:', error);
     }
   };
 

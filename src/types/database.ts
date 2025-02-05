@@ -18,6 +18,8 @@ export interface User {
   subjects: string[] | null
   education: string | null
   experience: string | null
+  bio: string | null
+  qualifications: string[] | null
   // Sistemski podaci
   created_at: string
   updated_at: string

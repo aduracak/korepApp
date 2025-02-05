@@ -1,19 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { Users, Settings, ChevronDown, Search, Edit2, Trash2, UserPlus } from 'lucide-react';
+import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import UserDialog from '../components/UserDialog';
 import UserTooltip from '../components/UserTooltip';
+import type { User } from '../types/database';
 
-interface User {
-  id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  role: 'admin' | 'professor' | 'student';
-  phone?: string;
-  birth_date?: string;
-  parent_names?: string;
-  other_info?: string;
+interface UpdatedUserData {
+  first_name?: string;
+  last_name?: string;
+  email?: string;
+  role?: string;
+  status?: string;
 }
 
 export default function AdminPanel() {
@@ -79,6 +77,10 @@ export default function AdminPanel() {
       label: 'Postavke',
     },
   ];
+
+  const handleUpdateUser = async (updatedUserData: UpdatedUserData) => {
+    // implementation
+  };
 
   return (
     <div className="flex h-screen bg-gray-100">

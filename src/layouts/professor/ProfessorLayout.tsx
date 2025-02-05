@@ -11,6 +11,7 @@ import {
 } from 'lucide-react';
 import { UserProfile } from '../../components/shared/UserProfile';
 import { NotificationBell } from '../../components/shared/NotificationBell';
+import { useAuth } from '../../contexts/AuthContext';
 
 const menuItems = [
   { icon: Home, label: 'HomeBase', path: '/professor' },
@@ -44,8 +45,8 @@ const contentVariants = {
   }
 };
 
-export const ProfessorLayout: React.FC = () => {
-  const navigate = useNavigate();
+export function ProfessorLayout() {
+  const { user } = useAuth();
 
   // Mock data
   const mockNotifications = [
@@ -146,4 +147,4 @@ export const ProfessorLayout: React.FC = () => {
       </div>
     </div>
   );
-}; 
+} 

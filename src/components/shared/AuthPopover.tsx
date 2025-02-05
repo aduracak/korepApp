@@ -1,6 +1,6 @@
-import React from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { LogIn, UserPlus, X } from 'lucide-react';
+import { useAuth } from '../../contexts/AuthContext';
+import { Eye, EyeOff } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 interface AuthPopoverProps {

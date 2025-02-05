@@ -136,6 +136,15 @@ export default function Users() {
         <UserEditModal
           user={selectedUser}
           onClose={() => setSelectedUser(null)}
+          isOpen={!!selectedUser}
+          onSave={async (userData) => {
+            const { data, error } = await supabase
+              .from('users')
+              .update(userData)
+              .eq('id', selectedUser.id);
+            
+            if (error) throw error;
+          }}
         />
       )}
     </div>
