@@ -8,9 +8,10 @@ import {
   Trash2,
   PencilLine,
   AlertCircle,
-  Users as UsersIcon
+  Users as UsersIcon,
+  School
 } from 'lucide-react';
-import { supabase } from '../../lib/supabase';
+import { supabase, supabaseAdmin } from '../../lib/supabase';
 import _ from 'lodash';
 import type { User } from '../../types';
 
@@ -36,7 +37,20 @@ export const UsersGrid: React.FC<UsersGridProps> = ({ onEdit }) => {
 
       const { data, error: fetchError } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          professor_schools (
+            id,
+            school:school_id (
+              id,
+              name
+            ),
+            subject:subject_id (
+              id,
+              name
+            )
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (fetchError) throw fetchError;
@@ -48,8 +62,9 @@ export const UsersGrid: React.FC<UsersGridProps> = ({ onEdit }) => {
       const uniqueSubjects = Array.from(
         new Set(
           data
-            .filter(user => user.role === 'professor' && user.subject)
-            .map(user => user.subject)
+            .filter(user => user.role === 'professor')
+            .flatMap(user => user.professor_schools?.map(ps => ps.subject?.name) || [])
+            .filter(Boolean)
         )
       );
       setSubjects(uniqueSubjects as string[]);
@@ -75,7 +90,7 @@ export const UsersGrid: React.FC<UsersGridProps> = ({ onEdit }) => {
       const matchesRole = selectedRole === 'all' || user.role === selectedRole;
       
       const matchesSubject = selectedSubject === 'all' || 
-        (user.role === 'professor' && user.subject === selectedSubject);
+        (user.role === 'professor' && user.professor_schools?.some(ps => ps.subject?.name === selectedSubject));
 
       return matchesSearch && matchesRole && matchesSubject;
     });
@@ -92,17 +107,23 @@ export const UsersGrid: React.FC<UsersGridProps> = ({ onEdit }) => {
       setIsDeleteLoading(userId);
       setError('');
 
-      const { error: deleteError } = await supabase
+      // Prvo brišemo korisnika iz auth tabele
+      const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(userId);
+      if (authError) throw authError;
+
+      // Zatim brišemo profil iz profiles tabele
+      const { error: profileError } = await supabase
         .from('profiles')
         .delete()
         .eq('id', userId);
 
-      if (deleteError) throw deleteError;
+      if (profileError) throw profileError;
 
       setUsers(prev => prev.filter(user => user.id !== userId));
       setFilteredUsers(prev => prev.filter(user => user.id !== userId));
 
     } catch (err) {
+      console.error('Error deleting user:', err);
       setError(err instanceof Error ? err.message : 'Došlo je do greške pri brisanju korisnika');
     } finally {
       setIsDeleteLoading(null);
@@ -235,26 +256,17 @@ export const UsersGrid: React.FC<UsersGridProps> = ({ onEdit }) => {
                 </div>
 
                 <div className="grid grid-cols-2 gap-4 text-sm">
-                  <div>
-                    <span className="text-gray-400">Telefon:</span>
-                    <p className="text-white">{user.phone}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-400">Tip:</span>
-                    <p className="text-white capitalize">
-                      {user.role === 'professor' ? 'Profesor' : 'Učenik'}
-                    </p>
-                  </div>
-
                   {user.role === 'professor' && (
                     <>
                       <div>
-                        <span className="text-gray-400">Predmet:</span>
-                        <p className="text-white">{user.subject}</p>
+                        <span className="text-gray-400">Telefon:</span>
+                        <p className="text-white">{user.phone}</p>
                       </div>
                       <div>
-                        <span className="text-gray-400">Škola:</span>
-                        <p className="text-white">{user.school}</p>
+                        <span className="text-gray-400">Tip:</span>
+                        <p className="text-white capitalize">
+                          {user.role === 'professor' ? 'Profesor' : 'Učenik'}
+                        </p>
                       </div>
                     </>
                   )}
@@ -272,6 +284,26 @@ export const UsersGrid: React.FC<UsersGridProps> = ({ onEdit }) => {
                     </>
                   )}
                 </div>
+
+                {user.role === 'professor' && user.professor_schools && user.professor_schools.length > 0 && (
+                  <div className="mt-4 space-y-2">
+                    <span className="text-gray-400 text-sm font-medium">Škole i predmeti:</span>
+                    <div className="flex flex-wrap gap-2">
+                      {user.professor_schools.map((ps) => (
+                        <div
+                          key={ps.id}
+                          className="px-3 py-1 bg-slate-800 rounded-full text-sm flex items-center space-x-2"
+                        >
+                          <School className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-300">{ps.school?.name}</span>
+                          <span className="text-gray-500">•</span>
+                          <BookOpen className="w-4 h-4 text-gray-400" />
+                          <span className="text-gray-300">{ps.subject?.name}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             </motion.div>
           ))}

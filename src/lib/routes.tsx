@@ -8,17 +8,14 @@ import { Staffroom } from '../pages/admin/Staffroom';
 import { History as AdminHistory } from '../pages/admin/History';
 import { Settings as AdminSettings } from '../pages/admin/Settings';
 import { Dashboard as AdminDashboard } from '../pages/admin/Dashboard';
-import { Classes } from '../pages/admin/Classes';
 import { Dashboard as ProfessorDashboard } from '../pages/professor/Dashboard';
+import { Diary } from '../pages/professor/Diary';
 import { Students as ProfessorStudents } from '../pages/professor/Students';
 import { Lessons as ProfessorLessons } from '../pages/professor/Lessons';
 import { Subjects as ProfessorSubjects } from '../pages/professor/Subjects';
 import { Settings as ProfessorSettings } from '../pages/professor/Settings';
 import { Dashboard as StudentDashboard } from '../pages/student/Dashboard';
 import { Lessons as StudentLessons } from '../pages/student/Lessons';
-import { Professors } from '../pages/student/Professors';
-import { Subjects as StudentSubjects } from '../pages/student/Subjects';
-import { History } from '../pages/student/History';
 import { Grades } from '../pages/student/Grades';
 import { Settings as StudentSettings } from '../pages/student/Settings';
 import { ErrorBoundary } from '../components/error/ErrorBoundary';
@@ -26,6 +23,8 @@ import { ProfessorLayout } from '../components/layout/ProfessorLayout';
 import { StudentLayout } from '../components/layout/StudentLayout';
 import { AdminLayout } from '../components/layout/AdminLayout';
 import { ResetPassword } from '../pages/auth/ResetPassword';
+import { Tutoring } from '../pages/professor/Tutoring';
+import { Tutoring as StudentTutoring } from '../pages/student/Tutoring';
 
 // Loading komponenta
 const LoadingSpinner = () => (
@@ -75,14 +74,6 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingSpinner />}>
             <Staffroom />
-          </Suspense>
-        )
-      },
-      {
-        path: 'classes',
-        element: (
-          <Suspense fallback={<LoadingSpinner />}>
-            <Classes />
           </Suspense>
         )
       },
@@ -138,6 +129,14 @@ export const router = createBrowserRouter([
         )
       },
       {
+        path: 'diary',
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <Diary />
+          </Suspense>
+        )
+      },
+      {
         path: 'subjects',
         element: (
           <Suspense fallback={<LoadingSpinner />}>
@@ -150,6 +149,14 @@ export const router = createBrowserRouter([
         element: (
           <Suspense fallback={<LoadingSpinner />}>
             <ProfessorSettings />
+          </Suspense>
+        )
+      },
+      {
+        path: 'tutoring',
+        element: (
+          <Suspense fallback={<LoadingSpinner />}>
+            <Tutoring />
           </Suspense>
         )
       }
@@ -181,26 +188,10 @@ export const router = createBrowserRouter([
         )
       },
       {
-        path: 'professors',
+        path: 'tutoring',
         element: (
           <Suspense fallback={<LoadingSpinner />}>
-            <Professors />
-          </Suspense>
-        )
-      },
-      {
-        path: 'subjects',
-        element: (
-          <Suspense fallback={<LoadingSpinner />}>
-            <StudentSubjects />
-          </Suspense>
-        )
-      },
-      {
-        path: 'history',
-        element: (
-          <Suspense fallback={<LoadingSpinner />}>
-            <History />
+            <StudentTutoring />
           </Suspense>
         )
       },

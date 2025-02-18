@@ -1,22 +1,15 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { GraduationCap, Users, Calendar, BookOpen, Settings } from 'lucide-react';
+import { GraduationCap, Users, Calendar, BookOpen, Settings, School } from 'lucide-react';
 
 export const Dashboard: React.FC = () => {
   const cards = [
     {
-      title: 'Učenici',
-      description: 'Upravljajte svojim učenicima',
-      icon: Users,
-      href: '/professor/students',
+      title: 'Dnevnik',
+      description: 'Pregled i upravljanje dnevnikom',
+      icon: BookOpen,
+      href: '/professor/diary',
       color: 'from-emerald-400 to-cyan-400'
-    },
-    {
-      title: 'Časovi',
-      description: 'Pregledajte i zakažite časove',
-      icon: Calendar,
-      href: '/professor/lessons',
-      color: 'from-purple-400 to-pink-400'
     },
     {
       title: 'Predmeti',
@@ -24,6 +17,13 @@ export const Dashboard: React.FC = () => {
       icon: BookOpen,
       href: '/professor/subjects',
       color: 'from-orange-400 to-red-400'
+    },
+    {
+      title: 'Korepeticija',
+      description: 'Upravljajte korepeticijama',
+      icon: School,
+      href: '/professor/tutoring',
+      color: 'from-blue-500 to-indigo-500'
     },
     {
       title: 'Podešavanja',
@@ -48,7 +48,7 @@ export const Dashboard: React.FC = () => {
       </div>
 
       {/* Cards Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {cards.map(card => (
           <motion.a
             key={card.title}

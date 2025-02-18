@@ -2,55 +2,42 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, GraduationCap, School } from 'lucide-react';
+import { X, School, MapPin } from 'lucide-react';
 import { supabaseAdmin as supabase } from '../../lib/supabase';
 import { toast } from 'sonner';
 
-interface School {
-  id: string;
-  name: string;
-}
-
-interface ClassDialogProps {
+interface EditSchoolDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  school: {
+    id: string;
+    name: string;
+    address: string | null;
+  };
 }
 
-export const ClassDialog: React.FC<ClassDialogProps> = ({
+export const EditSchoolDialog: React.FC<EditSchoolDialogProps> = ({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  school
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
-  const [schools, setSchools] = useState<School[]>([]);
   const [formData, setFormData] = useState({
     name: '',
-    school_id: ''
+    address: ''
   });
 
   useEffect(() => {
-    const fetchSchools = async () => {
-      try {
-        const { data, error } = await supabase
-          .from('schools')
-          .select('id, name')
-          .order('name');
-
-        if (error) throw error;
-        setSchools(data || []);
-      } catch (err) {
-        console.error('Error fetching schools:', err);
-        toast.error('Došlo je do greške pri učitavanju škola');
-      }
-    };
-
-    if (isOpen) {
-      fetchSchools();
-      setFormData({ name: '', school_id: '' });
+    if (school) {
+      setFormData({
+        name: school.name,
+        address: school.address || ''
+      });
     }
-  }, [isOpen]);
+  }, [school]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,30 +46,26 @@ export const ClassDialog: React.FC<ClassDialogProps> = ({
 
     try {
       if (!formData.name) {
-        setError('Naziv razreda je obavezan');
+        setError('Naziv škole je obavezan');
         return;
       }
 
-      if (!formData.school_id) {
-        setError('Škola je obavezna');
-        return;
-      }
-
-      const { error: insertError } = await supabase
-        .from('school_classes')
-        .insert([{
+      const { error: updateError } = await supabase
+        .from('schools')
+        .update({
           name: formData.name,
-          school_id: formData.school_id
-        }]);
+          address: formData.address || null
+        })
+        .eq('id', school.id);
 
-      if (insertError) throw insertError;
+      if (updateError) throw updateError;
 
-      toast.success('Razred je uspješno kreiran');
+      toast.success('Škola je uspješno ažurirana');
       onSuccess?.();
       onClose();
     } catch (err) {
-      console.error('Error creating class:', err);
-      setError('Došlo je do greške pri kreiranju razreda');
+      console.error('Error updating school:', err);
+      setError('Došlo je do greške pri ažuriranju škole');
     } finally {
       setIsLoading(false);
     }
@@ -103,17 +86,17 @@ export const ClassDialog: React.FC<ClassDialogProps> = ({
             exit={{ scale: 0.95, opacity: 0 }}
             className="relative w-full max-w-lg"
           >
-            <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-emerald-500 to-teal-500 opacity-20 blur"></div>
+            <div className="absolute -inset-0.5 rounded-lg bg-gradient-to-r from-violet-500 to-purple-500 opacity-20 blur"></div>
             
             <div className="relative bg-slate-800/90 backdrop-blur-xl rounded-lg shadow-xl border border-white/10">
               <div className="flex items-center justify-between p-6 border-b border-white/10">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg">
-                    <GraduationCap className="w-6 h-6 text-white" />
+                  <div className="p-2.5 bg-gradient-to-r from-violet-500 to-purple-500 rounded-lg">
+                    <School className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-white">Novi razred</h2>
-                    <p className="text-sm text-gray-400">Dodajte novi razred</p>
+                    <h2 className="text-xl font-semibold text-white">Uredi školu</h2>
+                    <p className="text-sm text-gray-400">Uredite podatke o školi</p>
                   </div>
                 </div>
                 {!isLoading && (
@@ -130,20 +113,20 @@ export const ClassDialog: React.FC<ClassDialogProps> = ({
 
               <form onSubmit={handleSubmit} className="p-6 space-y-6">
                 <div className="space-y-2">
-                  <label htmlFor="class-name" className="block text-sm font-medium text-gray-400">
-                    Naziv razreda
+                  <label htmlFor="school-name" className="block text-sm font-medium text-gray-400">
+                    Naziv škole
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <GraduationCap className="w-5 h-5 text-gray-400" />
+                      <School className="w-5 h-5 text-gray-400" />
                     </div>
                     <input
                       type="text"
-                      id="class-name"
+                      id="school-name"
                       value={formData.name}
                       onChange={(e) => setFormData(prev => ({ ...prev, name: e.target.value }))}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white placeholder-gray-500"
-                      placeholder="Unesite naziv razreda"
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-white placeholder-gray-500"
+                      placeholder="Unesite naziv škole"
                       required
                       disabled={isLoading}
                     />
@@ -151,28 +134,22 @@ export const ClassDialog: React.FC<ClassDialogProps> = ({
                 </div>
 
                 <div className="space-y-2">
-                  <label htmlFor="school-id" className="block text-sm font-medium text-gray-400">
-                    Škola
+                  <label htmlFor="school-address" className="block text-sm font-medium text-gray-400">
+                    Adresa
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <School className="w-5 h-5 text-gray-400" />
+                      <MapPin className="w-5 h-5 text-gray-400" />
                     </div>
-                    <select
-                      id="school-id"
-                      value={formData.school_id}
-                      onChange={(e) => setFormData(prev => ({ ...prev, school_id: e.target.value }))}
-                      className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-500/50 text-white"
-                      required
+                    <input
+                      type="text"
+                      id="school-address"
+                      value={formData.address}
+                      onChange={(e) => setFormData(prev => ({ ...prev, address: e.target.value }))}
+                      className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-violet-500/50 text-white placeholder-gray-500"
+                      placeholder="Unesite adresu škole"
                       disabled={isLoading}
-                    >
-                      <option value="">Odaberite školu</option>
-                      {schools.map((school) => (
-                        <option key={school.id} value={school.id}>
-                          {school.name}
-                        </option>
-                      ))}
-                    </select>
+                    />
                   </div>
                 </div>
 
@@ -197,16 +174,16 @@ export const ClassDialog: React.FC<ClassDialogProps> = ({
                   </button>
                   <button
                     type="submit"
-                    disabled={isLoading || !formData.name || !formData.school_id}
-                    className="px-4 py-2.5 bg-gradient-to-r from-emerald-500 to-teal-500 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
+                    disabled={isLoading || !formData.name}
+                    className="px-4 py-2.5 bg-gradient-to-r from-violet-500 to-purple-500 rounded-lg text-white font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center space-x-2"
                   >
                     {isLoading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white/20 border-t-white/100 rounded-full animate-spin" />
-                        <span>Kreiranje...</span>
+                        <span>Ažuriranje...</span>
                       </>
                     ) : (
-                      <span>Kreiraj razred</span>
+                      <span>Sačuvaj promjene</span>
                     )}
                   </button>
                 </div>

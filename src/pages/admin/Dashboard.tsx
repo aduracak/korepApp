@@ -1,7 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Users, Database, History, Settings, GraduationCap, BookOpen } from 'lucide-react';
+import { Users, Database, History, Settings, BookOpen } from 'lucide-react';
 
 export const Dashboard = () => {
   const cards = [
@@ -20,14 +20,6 @@ export const Dashboard = () => {
       icon: Database,
       gradient: 'from-violet-500 to-purple-500',
       iconBg: 'rgb(139 92 246)'
-    },
-    {
-      name: 'Razredi',
-      description: 'Upravljajte razredima',
-      href: '/admin/classes',
-      icon: GraduationCap,
-      gradient: 'from-indigo-500 to-blue-500',
-      iconBg: 'rgb(59 130 246)'
     },
     {
       name: 'Historija',

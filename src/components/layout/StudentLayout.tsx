@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Calendar, GraduationCap, BookOpen, Clock, Star, Settings, Menu, ChevronDown, LogOut } from 'lucide-react';
+import { Calendar, Star, Settings, Menu, ChevronDown, LogOut, School, BookOpen } from 'lucide-react';
 import { MobileNav } from './MobileNav';
 import { supabase } from '../../lib/supabase';
 
@@ -19,19 +19,9 @@ export const StudentLayout: React.FC = () => {
       icon: Calendar
     },
     {
-      name: 'Profesori',
-      href: '/student/professors',
-      icon: GraduationCap
-    },
-    {
-      name: 'Predmeti',
-      href: '/student/subjects',
-      icon: BookOpen
-    },
-    {
-      name: 'Historija',
-      href: '/student/history',
-      icon: Clock
+      name: 'Korepeticija',
+      href: '/student/tutoring',
+      icon: School
     },
     {
       name: 'Ocjene',

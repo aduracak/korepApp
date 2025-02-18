@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Settings, History, Database, BookOpen, Menu, ChevronDown, LogOut, GraduationCap } from 'lucide-react';
+import { Users, Settings, History, Database, BookOpen, Menu, ChevronDown, LogOut } from 'lucide-react';
 import { MobileNav } from './MobileNav';
 import { rconAuth } from '../../services/rconAuth';
+import { Toaster } from 'sonner';
 
 export const AdminLayout: React.FC = () => {
   const location = useLocation();
@@ -22,12 +23,6 @@ export const AdminLayout: React.FC = () => {
       href: '/admin/staffroom',
       icon: Database,
       description: 'Pregledajte podatke zbornice'
-    },
-    {
-      name: 'Razredi',
-      href: '/admin/classes',
-      icon: GraduationCap,
-      description: 'Upravljajte razredima'
     },
     {
       name: 'Historija',
@@ -54,6 +49,7 @@ export const AdminLayout: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-slate-900">
+      <Toaster richColors position="top-right" />
       <nav className="fixed top-0 left-0 right-0 z-50 bg-slate-800/50 backdrop-blur-xl border-b border-white/10">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex items-center justify-between h-16">

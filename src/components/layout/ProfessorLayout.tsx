@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
-import { Users, Calendar, BookOpen, Settings, Menu, ChevronDown, LogOut } from 'lucide-react';
+import { Users, Calendar, BookOpen, Settings, Menu, ChevronDown, LogOut, School } from 'lucide-react';
 import { MobileNav } from './MobileNav';
 import { supabase } from '../../lib/supabase';
 
@@ -42,19 +42,19 @@ export const ProfessorLayout: React.FC = () => {
 
   const navigation = [
     {
-      name: 'Učenici',
-      href: '/professor/students',
-      icon: Users
-    },
-    {
-      name: 'Časovi',
-      href: '/professor/lessons',
-      icon: Calendar
+      name: 'Dnevnik',
+      href: '/professor/diary',
+      icon: BookOpen
     },
     {
       name: 'Predmeti',
       href: '/professor/subjects',
       icon: BookOpen
+    },
+    {
+      name: 'Korepeticija',
+      href: '/professor/tutoring',
+      icon: School
     },
     {
       name: 'Podešavanja',

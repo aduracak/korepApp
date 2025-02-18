@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   X, 
-  User, 
+  User as UserIcon, 
   Phone, 
   Mail, 
   Lock, 
@@ -12,26 +12,17 @@ import {
   Users as UsersIcon,
   Loader2,
   AlertCircle,
-  Check
+  Check,
+  Plus,
+  Trash
 } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
+import type { User, School as SchoolType, Subject as SubjectType, SchoolSubject } from '../../types';
 
 interface UserDialogProps {
   isOpen: boolean;
   onClose: () => void;
-  user?: {
-    id?: string;
-    first_name?: string;
-    last_name?: string;
-    email?: string;
-    phone?: string;
-    role?: 'professor' | 'student';
-    parent_names?: string;
-    parent_phone?: string;
-    subject?: string;
-    school?: string;
-    grades?: string[];
-  };
+  user?: User;
 }
 
 interface FormData {
@@ -42,10 +33,8 @@ interface FormData {
   role: 'professor' | 'student';
   parent_names?: string;
   parent_phone?: string;
-  subject?: string;
-  school?: string;
-  grades?: string[];
   password?: string;
+  school_subjects: SchoolSubject[];
 }
 
 const initialFormData: FormData = {
@@ -56,10 +45,8 @@ const initialFormData: FormData = {
   role: 'student',
   parent_names: '',
   parent_phone: '',
-  subject: '',
-  school: '',
-  grades: [],
-  password: ''
+  password: '',
+  school_subjects: []
 };
 
 export const UserDialog: React.FC<UserDialogProps> = ({
@@ -70,37 +57,106 @@ export const UserDialog: React.FC<UserDialogProps> = ({
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [subjects, setSubjects] = useState<string[]>([
-    'Matematika',
-    'Fizika',
-    'Hemija',
-    'Biologija',
-    'Informatika',
-    'Engleski jezik',
-    'Njemački jezik'
-  ]);
-  const [schools, setSchools] = useState<string[]>([
-    'Prva gimnazija',
-    'Druga gimnazija',
-    'Treća gimnazija',
-    'Četvrta gimnazija',
-    'Peta gimnazija'
-  ]);
+  const [schools, setSchools] = useState<SchoolType[]>([]);
+  const [subjects, setSubjects] = useState<SubjectType[]>([]);
+
+  useEffect(() => {
+    if (isOpen) {
+      fetchSchoolsAndSubjects();
+    }
+  }, [isOpen]);
 
   useEffect(() => {
     if (user) {
       setFormData({
         ...initialFormData,
-        ...user
+        first_name: user.first_name,
+        last_name: user.last_name,
+        email: user.email,
+        phone: user.phone,
+        role: user.role,
+        parent_names: user.parent_names,
+        parent_phone: user.parent_phone,
+        school_subjects: user.professor_schools?.reduce((acc, ps) => {
+          const existingSchool = acc.find(s => s.school_id === ps.school_id);
+          if (existingSchool) {
+            existingSchool.subject_ids.push(ps.subject_id);
+          } else {
+            acc.push({
+              school_id: ps.school_id,
+              subject_ids: [ps.subject_id]
+            });
+          }
+          return acc;
+        }, [] as SchoolSubject[]) || []
       });
     } else {
       setFormData(initialFormData);
     }
   }, [user]);
 
+  const fetchSchoolsAndSubjects = async () => {
+    try {
+      const [schoolsResponse, subjectsResponse] = await Promise.all([
+        supabase.from('schools').select('*').order('name'),
+        supabase.from('subjects').select('*').order('name')
+      ]);
+
+      if (schoolsResponse.error) throw schoolsResponse.error;
+      if (subjectsResponse.error) throw subjectsResponse.error;
+
+      setSchools(schoolsResponse.data);
+      setSubjects(subjectsResponse.data);
+    } catch (error) {
+      console.error('Error fetching schools and subjects:', error);
+      setError('Došlo je do greške pri učitavanju škola i predmeta');
+    }
+  };
+
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
+  };
+
+  const handleAddSchool = () => {
+    setFormData(prev => ({
+      ...prev,
+      school_subjects: [
+        ...prev.school_subjects,
+        { school_id: '', subject_ids: [] }
+      ]
+    }));
+  };
+
+  const handleRemoveSchool = (index: number) => {
+    setFormData(prev => ({
+      ...prev,
+      school_subjects: prev.school_subjects.filter((_, i) => i !== index)
+    }));
+  };
+
+  const handleSchoolChange = (index: number, school_id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      school_subjects: prev.school_subjects.map((ss, i) => 
+        i === index ? { ...ss, school_id, subject_ids: [] } : ss
+      )
+    }));
+  };
+
+  const handleSubjectChange = (schoolIndex: number, subject_id: string) => {
+    setFormData(prev => ({
+      ...prev,
+      school_subjects: prev.school_subjects.map((ss, i) => {
+        if (i === schoolIndex) {
+          const subject_ids = ss.subject_ids.includes(subject_id)
+            ? ss.subject_ids.filter(id => id !== subject_id)
+            : [...ss.subject_ids, subject_id];
+          return { ...ss, subject_ids };
+        }
+        return ss;
+      })
+    }));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -110,6 +166,9 @@ export const UserDialog: React.FC<UserDialogProps> = ({
 
     try {
       if (user?.id) {
+        console.log('Updating existing user:', user.id);
+        console.log('Form data:', formData);
+
         // Update existing user
         const { error: updateError } = await supabase
           .from('profiles')
@@ -119,14 +178,80 @@ export const UserDialog: React.FC<UserDialogProps> = ({
             phone: formData.phone,
             role: formData.role,
             parent_names: formData.role === 'student' ? formData.parent_names : null,
-            parent_phone: formData.role === 'student' ? formData.parent_phone : null,
-            subject: formData.role === 'professor' ? formData.subject : null,
-            school: formData.role === 'professor' ? formData.school : null,
-            grades: formData.role === 'professor' ? formData.grades : null
+            parent_phone: formData.role === 'student' ? formData.parent_phone : null
           })
           .eq('id', user.id);
 
-        if (updateError) throw updateError;
+        if (updateError) {
+          console.error('Error updating profile:', updateError);
+          throw updateError;
+        }
+        console.log('Profile updated successfully');
+
+        if (formData.role === 'professor') {
+          // Prepare new professor_schools entries
+          const professor_schools = formData.school_subjects
+            .flatMap(ss => 
+              ss.subject_ids.map(subject_id => ({
+                professor_id: user.id,
+                school_id: ss.school_id,
+                subject_id
+              }))
+            )
+            .filter(ps => ps.school_id && ps.subject_id);
+
+          console.log('New professor_schools entries:', professor_schools);
+
+          // Prvo dohvatimo postojeće zapise
+          const { data: existingEntries, error: fetchError } = await supabase
+            .from('professor_schools')
+            .select('*')
+            .eq('professor_id', user.id);
+
+          if (fetchError) {
+            console.error('Error fetching existing entries:', fetchError);
+            throw fetchError;
+          }
+          console.log('Existing professor_schools entries:', existingEntries);
+
+          // Provjerimo da li ima promjena
+          const hasChanges = !existingEntries || existingEntries.length !== professor_schools.length || 
+            !existingEntries.every(existing => 
+              professor_schools.some(ps => 
+                ps.school_id === existing.school_id && 
+                ps.subject_id === existing.subject_id
+              )
+            );
+
+          // Samo ako ima promjena, ažuriramo zapise
+          if (hasChanges) {
+            // Prvo brišemo postojeće zapise
+            const { error: deleteError } = await supabase
+              .from('professor_schools')
+              .delete()
+              .eq('professor_id', user.id);
+
+            if (deleteError) {
+              console.error('Error deleting professor schools:', deleteError);
+              throw new Error('Greška pri brisanju postojećih škola profesora');
+            }
+            console.log('Existing entries deleted successfully');
+
+            // Zatim dodajemo nove zapise ako ih ima
+            if (professor_schools.length > 0) {
+              const { data: inserted, error: insertError } = await supabase
+                .from('professor_schools')
+                .insert(professor_schools)
+                .select();
+
+              if (insertError) {
+                console.error('Error inserting professor schools:', insertError);
+                throw new Error('Greška pri dodavanju škola profesora');
+              }
+              console.log('New entries inserted successfully:', inserted);
+            }
+          }
+        }
       } else {
         // Create new user
         const { data: { user: authUser }, error: authError } = await supabase.auth.signUp({
@@ -139,29 +264,48 @@ export const UserDialog: React.FC<UserDialogProps> = ({
         if (authUser) {
           const { error: profileError } = await supabase
             .from('profiles')
-            .insert([
-              {
-                id: authUser.id,
-                first_name: formData.first_name,
-                last_name: formData.last_name,
-                email: formData.email,
-                phone: formData.phone,
-                role: formData.role,
-                parent_names: formData.role === 'student' ? formData.parent_names : null,
-                parent_phone: formData.role === 'student' ? formData.parent_phone : null,
-                subject: formData.role === 'professor' ? formData.subject : null,
-                school: formData.role === 'professor' ? formData.school : null,
-                grades: formData.role === 'professor' ? formData.grades : null
-              }
-            ]);
+            .insert([{
+              id: authUser.id,
+              first_name: formData.first_name,
+              last_name: formData.last_name,
+              email: formData.email,
+              phone: formData.phone,
+              role: formData.role,
+              parent_names: formData.role === 'student' ? formData.parent_names : null,
+              parent_phone: formData.role === 'student' ? formData.parent_phone : null
+            }]);
 
           if (profileError) throw profileError;
+
+          if (formData.role === 'professor') {
+            const professor_schools = formData.school_subjects
+              .flatMap(ss => 
+                ss.subject_ids.map(subject_id => ({
+                  professor_id: authUser.id,
+                  school_id: ss.school_id,
+                  subject_id
+                }))
+              )
+              .filter(ps => ps.school_id && ps.subject_id);
+
+            if (professor_schools.length > 0) {
+              const { error: psError } = await supabase
+                .from('professor_schools')
+                .insert(professor_schools);
+
+              if (psError) {
+                console.error('Error creating professor schools:', psError);
+                throw new Error('Greška pri dodavanju škola profesora');
+              }
+            }
+          }
         }
       }
 
       onClose();
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Došlo je do greške');
+      console.error('Error:', err);
+      setError(err instanceof Error ? err.message : 'Došlo je do greške pri spremanju podataka');
     } finally {
       setIsLoading(false);
     }
@@ -170,350 +314,226 @@ export const UserDialog: React.FC<UserDialogProps> = ({
   return (
     <AnimatePresence>
       {isOpen && (
+        <>
+          {/* Overlay */}
         <motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
-          className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm"
-        >
+            className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50"
+            onClick={onClose}
+          />
+
+          {/* Dialog */}
           <motion.div
-            initial={{ scale: 0.95, opacity: 0 }}
-            animate={{ scale: 1, opacity: 1 }}
-            exit={{ scale: 0.95, opacity: 0 }}
-            className="relative w-full max-w-2xl"
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            exit={{ opacity: 0, scale: 0.95 }}
+            className="fixed inset-0 z-50 flex items-center justify-center pointer-events-none p-4"
           >
-            <div className="absolute -inset-0.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg opacity-20 blur"></div>
-            
-            <div className="relative bg-slate-800/90 backdrop-blur-xl rounded-lg shadow-xl border border-white/10">
-              <div className="flex items-center justify-between p-6 border-b border-white/10">
+            <div className="bg-slate-900 border border-white/10 rounded-lg shadow-xl w-full max-w-lg pointer-events-auto flex flex-col max-h-[90vh]">
+              {/* Header */}
+              <div className="flex items-center justify-between p-6 border-b border-white/10 flex-shrink-0">
                 <div className="flex items-center space-x-3">
-                  <div className="p-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
-                    <User className="w-6 h-6 text-white" />
+                  <div className="p-2 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg">
+                    <UserIcon className="w-5 h-5 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-white">
-                      {user ? 'Uredi korisnika' : 'Novi korisnik'}
+                    <h2 className="text-lg font-semibold text-white">
+                      Uredi korisnika
                     </h2>
                     <p className="text-sm text-gray-400">
-                      {user ? 'Uredite podatke korisnika' : 'Kreirajte novog korisnika'}
+                      Uredite podatke korisnika
                     </p>
                   </div>
                 </div>
-                {!isLoading && (
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    whileTap={{ scale: 0.95 }}
+                <button
                     onClick={onClose}
                     className="p-2 hover:bg-white/5 rounded-lg transition-colors"
                   >
                     <X className="w-5 h-5 text-gray-400" />
-                  </motion.button>
-                )}
+                </button>
               </div>
 
-              <form onSubmit={handleSubmit} className="p-6 space-y-6">
+              {/* Content */}
+              <div className="p-6 space-y-6 overflow-y-auto flex-1">
                 {/* Basic Info */}
-                <div className="grid grid-cols-2 gap-6">
-                  <div className="space-y-2">
-                    <label htmlFor="first_name" className="block text-sm font-medium text-gray-400">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">
                       Ime
                     </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="w-5 h-5 text-gray-400" />
-                      </div>
                       <input
                         type="text"
-                        id="first_name"
                         name="first_name"
                         value={formData.first_name}
                         onChange={handleInputChange}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50 text-white placeholder-gray-500"
+                      className="w-full px-4 py-2.5 bg-slate-800/50 backdrop-blur-xl border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white"
                         placeholder="Unesite ime"
-                        required
                       />
-                    </div>
                   </div>
-
-                  <div className="space-y-2">
-                    <label htmlFor="last_name" className="block text-sm font-medium text-gray-400">
+                  <div>
+                    <label className="block text-sm font-medium text-gray-400 mb-2">
                       Prezime
                     </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <User className="w-5 h-5 text-gray-400" />
-                      </div>
                       <input
                         type="text"
-                        id="last_name"
                         name="last_name"
                         value={formData.last_name}
                         onChange={handleInputChange}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50 text-white placeholder-gray-500"
+                      className="w-full px-4 py-2.5 bg-slate-800/50 backdrop-blur-xl border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white"
                         placeholder="Unesite prezime"
-                        required
                       />
-                    </div>
                   </div>
                 </div>
 
-                {/* Contact Info */}
-                <div className="grid grid-cols-2 gap-6">
-                  {!user && (
-                    <div className="space-y-2">
-                      <label htmlFor="email" className="block text-sm font-medium text-gray-400">
-                        Email
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Mail className="w-5 h-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="email"
-                          id="email"
-                          name="email"
-                          value={formData.email}
-                          onChange={handleInputChange}
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50 text-white placeholder-gray-500"
-                          placeholder="Unesite email"
-                          required
-                        />
-                      </div>
-                    </div>
-                  )}
-
-                  <div className="space-y-2">
-                    <label htmlFor="phone" className="block text-sm font-medium text-gray-400">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
                       Telefon
                     </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Phone className="w-5 h-5 text-gray-400" />
-                      </div>
                       <input
                         type="tel"
-                        id="phone"
                         name="phone"
                         value={formData.phone}
                         onChange={handleInputChange}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50 text-white placeholder-gray-500"
-                        placeholder="Unesite telefon"
-                        required
+                    className="w-full px-4 py-2.5 bg-slate-800/50 backdrop-blur-xl border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white"
+                    placeholder="Unesite broj telefona"
                       />
-                    </div>
-                  </div>
                 </div>
 
-                {/* Role Selection */}
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-400">
+                <div>
+                  <label className="block text-sm font-medium text-gray-400 mb-2">
                     Tip korisnika
                   </label>
                   <div className="grid grid-cols-2 gap-4">
-                    <motion.button
+                    <button
                       type="button"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
                       onClick={() => setFormData(prev => ({ ...prev, role: 'professor' }))}
-                      className={`flex items-center space-x-3 p-4 rounded-lg border transition-all ${
+                      className={`p-4 rounded-lg border ${
                         formData.role === 'professor'
-                          ? 'bg-blue-500/10 border-blue-500/50 text-white'
+                          ? 'border-blue-500 bg-blue-500/10 text-blue-400'
                           : 'border-white/10 text-gray-400 hover:bg-white/5'
-                      }`}
+                      } transition-colors flex items-center justify-center space-x-2`}
                     >
-                      <GraduationCap className="w-6 h-6" />
+                      <GraduationCap className="w-5 h-5" />
                       <span>Profesor</span>
-                      {formData.role === 'professor' && (
-                        <Check className="w-5 h-5 ml-auto text-blue-500" />
-                      )}
-                    </motion.button>
-
-                    <motion.button
+                    </button>
+                    <button
                       type="button"
-                      whileHover={{ scale: 1.02 }}
-                      whileTap={{ scale: 0.98 }}
                       onClick={() => setFormData(prev => ({ ...prev, role: 'student' }))}
-                      className={`flex items-center space-x-3 p-4 rounded-lg border transition-all ${
+                      className={`p-4 rounded-lg border ${
                         formData.role === 'student'
-                          ? 'bg-blue-500/10 border-blue-500/50 text-white'
+                          ? 'border-blue-500 bg-blue-500/10 text-blue-400'
                           : 'border-white/10 text-gray-400 hover:bg-white/5'
-                      }`}
+                      } transition-colors flex items-center justify-center space-x-2`}
                     >
-                      <BookOpen className="w-6 h-6" />
+                      <BookOpen className="w-5 h-5" />
                       <span>Učenik</span>
-                      {formData.role === 'student' && (
-                        <Check className="w-5 h-5 ml-auto text-blue-500" />
-                      )}
-                    </motion.button>
+                    </button>
                   </div>
                 </div>
 
-                {/* Professor Fields */}
                 {formData.role === 'professor' && (
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label htmlFor="subject" className="block text-sm font-medium text-gray-400">
-                        Predmet
+                  <div className="space-y-4">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-sm font-medium text-gray-400">
+                        Škole i predmeti
                       </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <BookOpen className="w-5 h-5 text-gray-400" />
-                        </div>
-                        <select
-                          id="subject"
-                          name="subject"
-                          value={formData.subject}
-                          onChange={handleInputChange}
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50 text-white"
-                          required
-                        >
-                          <option value="">Odaberite predmet</option>
-                          {subjects.map(subject => (
-                            <option key={subject} value={subject}>{subject}</option>
-                          ))}
-                        </select>
-                      </div>
+                      <motion.button
+                        type="button"
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                        onClick={handleAddSchool}
+                        className="px-3 py-1.5 bg-white/5 hover:bg-white/10 rounded-lg text-sm text-white flex items-center space-x-2"
+                      >
+                        <Plus className="w-4 h-4" />
+                        <span>Dodaj školu</span>
+                      </motion.button>
                     </div>
 
-                    <div className="space-y-2">
-                      <label htmlFor="school" className="block text-sm font-medium text-gray-400">
+                    {formData.school_subjects.map((schoolSubject, schoolIndex) => (
+                      <div key={schoolIndex} className="space-y-3 p-4 bg-slate-800/50 rounded-lg">
+                        <div className="flex items-center justify-between">
+                          <div className="flex-1 mr-4">
+                            <label className="block text-sm font-medium text-gray-400 mb-1">
                         Škola
                       </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <School className="w-5 h-5 text-gray-400" />
-                        </div>
                         <select
-                          id="school"
-                          name="school"
-                          value={formData.school}
-                          onChange={handleInputChange}
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50 text-white"
-                          required
+                              value={schoolSubject.school_id}
+                              onChange={(e) => handleSchoolChange(schoolIndex, e.target.value)}
+                              className="w-full px-4 py-2.5 bg-slate-800/50 backdrop-blur-xl border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500/50 text-white"
                         >
                           <option value="">Odaberite školu</option>
                           {schools.map(school => (
-                            <option key={school} value={school}>{school}</option>
+                                <option key={school.id} value={school.id}>
+                                  {school.name}
+                                </option>
                           ))}
                         </select>
                       </div>
+                          <motion.button
+                            type="button"
+                            whileHover={{ scale: 1.02 }}
+                            whileTap={{ scale: 0.98 }}
+                            onClick={() => handleRemoveSchool(schoolIndex)}
+                            className="p-2 hover:bg-white/5 rounded-lg transition-colors self-end"
+                          >
+                            <Trash className="w-4 h-4 text-red-400" />
+                          </motion.button>
                     </div>
-                  </div>
-                )}
 
-                {/* Student Fields */}
-                {formData.role === 'student' && (
-                  <div className="grid grid-cols-2 gap-6">
-                    <div className="space-y-2">
-                      <label htmlFor="parent_names" className="block text-sm font-medium text-gray-400">
-                        Ime roditelja
+                        {schoolSubject.school_id && (
+                          <div>
+                            <label className="block text-sm font-medium text-gray-400 mb-2">
+                              Predmeti
                       </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <UsersIcon className="w-5 h-5 text-gray-400" />
-                        </div>
+                            <div className="flex flex-wrap gap-2">
+                              {subjects.map(subject => (
+                                <label
+                                  key={subject.id}
+                                  className={`px-3 py-1.5 rounded-lg border cursor-pointer flex items-center space-x-2 transition-colors ${
+                                    schoolSubject.subject_ids.includes(subject.id)
+                                      ? 'bg-blue-500/10 border-blue-500/20 text-blue-400'
+                                      : 'border-white/10 text-gray-400 hover:bg-white/5'
+                                  }`}
+                                >
                         <input
-                          type="text"
-                          id="parent_names"
-                          name="parent_names"
-                          value={formData.parent_names}
-                          onChange={handleInputChange}
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50 text-white placeholder-gray-500"
-                          placeholder="Unesite ime roditelja"
-                          required
-                        />
-                      </div>
-                    </div>
-
-                    <div className="space-y-2">
-                      <label htmlFor="parent_phone" className="block text-sm font-medium text-gray-400">
-                        Telefon roditelja
-                      </label>
-                      <div className="relative">
-                        <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                          <Phone className="w-5 h-5 text-gray-400" />
-                        </div>
-                        <input
-                          type="tel"
-                          id="parent_phone"
-                          name="parent_phone"
-                          value={formData.parent_phone}
-                          onChange={handleInputChange}
-                          className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50 text-white placeholder-gray-500"
-                          placeholder="Unesite telefon roditelja"
-                          required
-                        />
-                      </div>
+                                    type="checkbox"
+                                    className="hidden"
+                                    checked={schoolSubject.subject_ids.includes(subject.id)}
+                                    onChange={() => handleSubjectChange(schoolIndex, subject.id)}
+                                  />
+                                  <BookOpen className="w-4 h-4" />
+                                  <span>{subject.name}</span>
+                                </label>
+                              ))}
                     </div>
                   </div>
                 )}
-
-                {/* Password Field (only for new users) */}
-                {!user && (
-                  <div className="space-y-2">
-                    <label htmlFor="password" className="block text-sm font-medium text-gray-400">
-                      Šifra
-                    </label>
-                    <div className="relative">
-                      <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                        <Lock className="w-5 h-5 text-gray-400" />
                       </div>
-                      <input
-                        type="password"
-                        id="password"
-                        name="password"
-                        value={formData.password}
-                        onChange={handleInputChange}
-                        className="w-full pl-10 pr-4 py-2.5 bg-slate-900/50 border border-white/10 rounded-lg focus:outline-none focus:ring-2 focus:ring-emerald-400/50 text-white placeholder-gray-500"
-                        placeholder="Ostavite prazno za automatsku generaciju"
-                      />
-                    </div>
+                    ))}
                   </div>
                 )}
+              </div>
 
-                {error && (
-                  <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg flex items-start space-x-2"
-                  >
-                    <AlertCircle className="w-5 h-5 text-red-400 mt-0.5 flex-shrink-0" />
-                    <p className="text-sm text-red-400">{error}</p>
-                  </motion.div>
-                )}
-
-                <div className="flex items-center justify-end space-x-4 pt-4">
-                  <motion.button
-                    type="button"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
+              {/* Footer */}
+              <div className="flex items-center justify-end p-6 border-t border-white/10 space-x-4 flex-shrink-0">
+                <button
                     onClick={onClose}
-                    disabled={isLoading}
-                    className="px-4 py-2.5 bg-white/5 rounded-lg text-white font-medium hover:bg-white/10 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-4 py-2.5 rounded-lg text-gray-400 hover:bg-white/5 transition-colors"
                   >
                     Odustani
-                  </motion.button>
-                  <motion.button
-                    type="submit"
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    disabled={isLoading}
-                    className="relative px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg text-white font-medium hover:from-blue-600 hover:to-indigo-600 disabled:from-gray-500 disabled:to-gray-600 disabled:cursor-not-allowed transition-all"
-                  >
-                    <span className={`${isLoading ? 'opacity-0' : 'opacity-100'}`}>
-                      {user ? 'Sačuvaj' : 'Kreiraj'}
-                    </span>
-                    {isLoading && (
-                      <div className="absolute inset-0 flex items-center justify-center">
-                        <Loader2 className="w-5 h-5 animate-spin" />
-                      </div>
-                    )}
-                  </motion.button>
+                </button>
+                <button
+                  onClick={handleSubmit}
+                  className="px-4 py-2.5 bg-gradient-to-r from-blue-500 to-indigo-500 rounded-lg text-white font-medium"
+                >
+                  Sačuvaj
+                </button>
                 </div>
-              </form>
             </div>
           </motion.div>
-        </motion.div>
+        </>
       )}
     </AnimatePresence>
   );

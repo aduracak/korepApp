@@ -1,30 +1,34 @@
 import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Users as UsersIcon, Search, Filter, Plus, Mail, Phone, User, Users as UsersGroupIcon, Pencil, Trash2, Loader2, AlertCircle } from 'lucide-react';
+import { Users as UsersIcon, Search, Filter, Plus, Mail, Phone, User as UserIcon, Users as UsersGroupIcon, Pencil, Trash2, Loader2, AlertCircle } from 'lucide-react';
 import { supabase } from '../../lib/supabase';
 import { UserDialog } from '../../components/admin/UserDialog';
 import { UsersGrid } from '../../components/admin/UsersGrid';
+import type { User } from '../../types';
 
-interface UserProfile {
+interface ProfessorSchool {
   id: string;
-  first_name: string;
-  last_name: string;
-  email: string;
-  phone: string;
-  role: 'student' | 'professor';
-  parent_names?: string;
-  parent_phone?: string;
+  school_id: string;
+  subject_id: string;
+  school: {
+    id: string;
+    name: string;
+  };
+  subject: {
+    id: string;
+    name: string;
+  };
 }
 
 export const Users = () => {
-  const [users, setUsers] = useState<UserProfile[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedFilter, setSelectedFilter] = useState('all');
   const [isLoading, setIsLoading] = useState(true);
   const [isDeleting, setIsDeleting] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
+  const [selectedUser, setSelectedUser] = useState<User | undefined>(undefined);
 
   useEffect(() => {
     fetchUsers();
@@ -34,7 +38,20 @@ export const Users = () => {
     try {
       const { data, error } = await supabase
         .from('profiles')
-        .select('*')
+        .select(`
+          *,
+          professor_schools (
+            id,
+            school:school_id (
+              id,
+              name
+            ),
+            subject:subject_id (
+              id,
+              name
+            )
+          )
+        `)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
@@ -84,13 +101,13 @@ export const Users = () => {
     return matchesSearch && user.role === selectedFilter;
   });
 
-  const handleOpenDialog = (user = null) => {
-    setSelectedUser(user);
+  const handleOpenDialog = (user?: User) => {
+    setSelectedUser(user || undefined);
     setIsDialogOpen(true);
   };
 
   const handleCloseDialog = () => {
-    setSelectedUser(null);
+    setSelectedUser(undefined);
     setIsDialogOpen(false);
   };
 

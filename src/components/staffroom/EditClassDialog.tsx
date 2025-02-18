@@ -11,16 +11,25 @@ interface School {
   name: string;
 }
 
-interface ClassDialogProps {
+interface EditClassDialogProps {
   isOpen: boolean;
   onClose: () => void;
   onSuccess?: () => void;
+  classItem: {
+    id: string;
+    name: string;
+    school_id: string;
+    school: {
+      name: string;
+    };
+  };
 }
 
-export const ClassDialog: React.FC<ClassDialogProps> = ({
+export const EditClassDialog: React.FC<EditClassDialogProps> = ({
   isOpen,
   onClose,
-  onSuccess
+  onSuccess,
+  classItem
 }) => {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
@@ -48,9 +57,17 @@ export const ClassDialog: React.FC<ClassDialogProps> = ({
 
     if (isOpen) {
       fetchSchools();
-      setFormData({ name: '', school_id: '' });
     }
   }, [isOpen]);
+
+  useEffect(() => {
+    if (classItem) {
+      setFormData({
+        name: classItem.name,
+        school_id: classItem.school_id
+      });
+    }
+  }, [classItem]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -68,21 +85,22 @@ export const ClassDialog: React.FC<ClassDialogProps> = ({
         return;
       }
 
-      const { error: insertError } = await supabase
+      const { error: updateError } = await supabase
         .from('school_classes')
-        .insert([{
+        .update({
           name: formData.name,
           school_id: formData.school_id
-        }]);
+        })
+        .eq('id', classItem.id);
 
-      if (insertError) throw insertError;
+      if (updateError) throw updateError;
 
-      toast.success('Razred je uspješno kreiran');
+      toast.success('Razred je uspješno ažuriran');
       onSuccess?.();
       onClose();
     } catch (err) {
-      console.error('Error creating class:', err);
-      setError('Došlo je do greške pri kreiranju razreda');
+      console.error('Error updating class:', err);
+      setError('Došlo je do greške pri ažuriranju razreda');
     } finally {
       setIsLoading(false);
     }
@@ -112,8 +130,8 @@ export const ClassDialog: React.FC<ClassDialogProps> = ({
                     <GraduationCap className="w-6 h-6 text-white" />
                   </div>
                   <div>
-                    <h2 className="text-xl font-semibold text-white">Novi razred</h2>
-                    <p className="text-sm text-gray-400">Dodajte novi razred</p>
+                    <h2 className="text-xl font-semibold text-white">Uredi razred</h2>
+                    <p className="text-sm text-gray-400">Uredite podatke o razredu</p>
                   </div>
                 </div>
                 {!isLoading && (
@@ -203,10 +221,10 @@ export const ClassDialog: React.FC<ClassDialogProps> = ({
                     {isLoading ? (
                       <>
                         <div className="w-5 h-5 border-2 border-white/20 border-t-white/100 rounded-full animate-spin" />
-                        <span>Kreiranje...</span>
+                        <span>Ažuriranje...</span>
                       </>
                     ) : (
-                      <span>Kreiraj razred</span>
+                      <span>Sačuvaj promjene</span>
                     )}
                   </button>
                 </div>
